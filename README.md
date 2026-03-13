@@ -34,10 +34,10 @@ We are currently in **Week 1 Team Setup and Planning**.
 
 | Name | GitHub 
 |------|--------
-| Chigozie | [@Chigozie-Nuel](https://github.com/Chigozie-Nuel) 
-| Gyann | [@AR-JUNA](https://github.com/AR-JUNA) 
-| Maoulaika | [@mmugeni](https://github.com/mmugeni)
-| Lisette | [@lisette-lachiever](https://github.com/lisette-lachiever) 
+| Chigozie Ndubuaku Emmanuel | [@Chigozie-Nuel](https://github.com/Chigozie-Nuel) 
+| Gyann Caleb | [@AR-JUNA](https://github.com/AR-JUNA) 
+| Maoulaika Mugeni | [@mmugeni](https://github.com/mmugeni)
+| Lisette Mukiza | [@lisette-lachiever](https://github.com/lisette-lachiever) 
 
 
 ## Architecture 
@@ -63,31 +63,51 @@ Full diagram: [Add Link here](Link)
 
 ```
 momo-dashboard/
-├── README.md
-├── .env.example
-├── requirements.txt
-├── index.html
-├── web/
-│   ├── styles.css
-│   ├── chart_handler.js
-│   └── assets/
-├── data/
-│   ├── raw/            # momo.xml goes here (git-ignored)
-│   ├── processed/      # dashboard.json output
+│
+├── README.md                    # What this project is and how to run it
+├── .env.example                 # Example config file copy this and add your settings
+├── requirements.txt             # Python libraries needed to run the project
+├── index.html                   # The main page that opens in the browser
+│
+├── web/                         # Everything the user sees in the browser
+│   ├── styles.css               # Makes the dashboard look good
+│   ├── chart_handler.js         # Loads the data and draws the charts
+│   └── assets/                  # Any images or icons used on the page
+│
+├── data/                        # All data the project uses or creates
+│   ├── raw/                     # The original XML file goes here (not uploaded to GitHub)
+│   │   └── momo.xml             # The raw MoMo SMS data we are working with
+│   ├── processed/               # Clean data that the dashboard reads from
+│   │   └── dashboard.json       # Summary of all transactions for the frontend
+│   ├── db.sqlite3               # The database where all transactions are stored
 │   └── logs/
-├── etl/
-│   ├── parse_xml.py
-│   ├── clean_normalize.py
-│   ├── categorize.py
-│   ├── load_db.py
-│   └── run.py
-├── scripts/
-│   ├── run_etl.sh
-│   └── serve_frontend.sh
-└── tests/
-    ├── test_parse_xml.py
-    ├── test_clean_normalize.py
-    └── test_categorize.py
+│       ├── etl.log              # A record of what happened each time the pipeline ran
+│       └── dead_letter/         # Messages that could not be read or processed
+│
+├── etl/                         # The backend scripts that process the data
+│   ├── __init__.py              # Makes this folder a Python package
+│   ├── config.py                # Settings like file paths and category rules
+│   ├── parse_xml.py             # Reads the XML file and pulls out each transaction
+│   ├── clean_normalize.py       # Fixes messy data formats amounts, dates, and phone numbers
+│   ├── categorize.py            # Decides what type each transaction is (e.g. payment, transfer)
+│   ├── load_db.py               # Saves the clean data into the database
+│   └── run.py                   # Runs all the steps above in the correct order
+│
+├── api/                         # A simple API to access the data (bonus feature)
+│   ├── __init__.py              # Makes this folder a Python package
+│   ├── app.py                   # Sets up the API routes (/transactions, /analytics)
+│   ├── db.py                    # Handles connecting to the database
+│   └── schemas.py               # Defines the shape of the data the API returns
+│
+├── scripts/                     # Shortcuts to run common tasks
+│   ├── run_etl.sh               # One command to run the full data pipeline
+│   ├── export_json.sh           # Rebuilds the dashboard.json file from the database
+│   └── serve_frontend.sh        # Starts a local server so you can view the dashboard
+│
+└── tests/                       # Checks that everything works correctly
+    ├── test_parse_xml.py        # Tests that the XML is being read properly
+    ├── test_clean_normalize.py  # Tests that the data cleaning works as expected
+    └── test_categorize.py       # Tests that transactions are being categorized correctly
 ```
 
 ## Tech Stack
