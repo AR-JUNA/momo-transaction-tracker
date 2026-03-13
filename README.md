@@ -35,7 +35,7 @@ We are currently in **Week 1 Team Setup and Planning**.
 | Name | GitHub 
 |------|--------
 | Chigozie Ndubuaku Emmanuel | [@Chigozie-Nuel](https://github.com/Chigozie-Nuel) 
-| Gyann Caleb | [@AR-JUNA](https://github.com/AR-JUNA) 
+| Arjuna Caleb Gyan | [@AR-JUNA](https://github.com/AR-JUNA) 
 | Maoulaika Mugeni | [@mmugeni](https://github.com/mmugeni)
 | Lisette Mukiza | [@lisette-lachiever](https://github.com/lisette-lachiever) 
 
