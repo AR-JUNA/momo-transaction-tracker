@@ -57,7 +57,7 @@ The system is split into four layers that feed into each other:
 [ Frontend Dashboard ]  -->  charts + transaction table
 ```
 
-Full diagram: [Add Link here](Link)
+Full diagram: [https://drive.google.com/file/d/1YCQrLFdY-kbx_QMMOhvBo-zh4a8jsB84/view?usp=sharing](url)
 
 ## Project Structure
 
