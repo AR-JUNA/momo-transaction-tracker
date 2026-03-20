@@ -36,7 +36,7 @@ We are currently in **Week 2  Database Design and Implementation**.
 |------|--------|
 | Chigozie Ndubuaku Emmanuel | [@Chigozie-Nuel](https://github.com/Chigozie-Nuel) |
 | Gyann Caleb | [@AR-JUNA](https://github.com/AR-JUNA) |
-| Maoulaika Mugeni | [@mmugeni](https://github.com/mmugeni) |
+| Moulaika Mugeni | [@mmugeni](https://github.com/mmugeni) |
 | Lisette Mukiza | [@lisette-lachiever](https://github.com/lisette-lachiever) |
 
 ## Architecture
