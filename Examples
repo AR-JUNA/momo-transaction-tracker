@@ -1,0 +1,660 @@
+
+{
+"_info": {
+"title": "MoMo SMS Data Processing System - JSON Schemas",
+"description": "This file shows how each database table maps to JSON. We use these structures in our FastAPI endpoints to send data to the frontend dashboard.",
+"version": "1.0",
+"note": "All amounts are in RWF (Rwandan Franc). Timestamps are ISO 8601 format."
+},
+
+"_sql_to_json_mapping": {
+"transaction_categories table": "TransactionCategory object",
+"users table": "User object",
+"wallets table": "Wallet object - nested inside User in full responses",
+"agents table": "Agent object - nested inside User when account_type is AGENT",
+"merchants table": "Merchant object - nested inside User when account_type is MERCHANT",
+"sms_raw_messages table": "SmsMessage object - nested as source_sms inside Transaction",
+"transactions table": "Transaction object - flat with FK ids for lists, fully nested for detail view",
+"tags table": "Tag object",
+"transaction_tags table": "Junction resolved - shown as tags array inside Transaction",
+"system_logs table": "SystemLog object - references sms, transaction and user as small summaries"
+},
+
+"individual_entity_schemas": {
+
+"TransactionCategory": {
+"_maps_to": "transaction_categories table",
+"_columns": "category_id, category_name, description, requires_agent, requires_merchant, created_at",
+"category_id": 3,
+"category_name": "PEER_TRANSFER",
+"description": "Sending money directly to another person",
+"requires_agent": false,
+"requires_merchant": false,
+"created_at": "2024-03-01T00:00:00Z"
+},
+
+"User": {
+"_maps_to": "users table",
+"_columns": "user_id, phone_number, full_name, account_type, is_active, created_at, updated_at",
+"user_id": 1,
+"phone_number": "+250781001001",
+"full_name": "Amina Uwimana",
+"account_type": "PERSONAL",
+"is_active": true,
+"created_at": "2024-03-01T00:00:00Z",
+"updated_at": "2024-03-01T09:10:00Z"
+},
+
+"Wallet": {
+"_maps_to": "wallets table",
+"_columns": "wallet_id, user_id, current_balance, daily_limit, wallet_status, last_transaction_at, created_at",
+"wallet_id": 1,
+"user_id": 1,
+"current_balance": 52000.00,
+"daily_limit": 10000000.00,
+"wallet_status": "ACTIVE",
+"last_transaction_at": "2024-03-06T07:30:00Z",
+"created_at": "2024-03-01T00:00:00Z"
+},
+
+"Agent": {
+"_maps_to": "agents table",
+"_columns": "agent_id, user_id, agent_code, business_name, location, is_verified, created_at",
+"agent_id": 1,
+"user_id": 6,
+"agent_code": "AGT-ACC-00301",
+"business_name": "Kwame MoMo Services",
+"location": "Accra, Greater Accra, Ring Road Central",
+"is_verified": true,
+"created_at": "2024-03-01T00:00:00Z"
+},
+
+"Merchant": {
+"_maps_to": "merchants table",
+"_columns": "merchant_id, user_id, merchant_code, business_name, business_category, settlement_account, is_verified, created_at",
+"merchant_id": 1,
+"user_id": 8,
+"merchant_code": "MRC-KGL-03311",
+"business_name": "Habimana Electronics & More",
+"business_category": "RETAIL",
+"settlement_account": "BK-RW-00441987",
+"is_verified": true,
+"created_at": "2024-03-01T00:00:00Z"
+},
+
+"SmsRawMessage_success": {
+"_maps_to": "sms_raw_messages table",
+"_columns": "sms_id, message_uid, raw_body, parse_status, failure_reason, received_at, processed_at",
+"_note": "This is what a successfully parsed SMS looks like",
+"sms_id": 1,
+"message_uid": "hash001",
+"raw_body": "TxId: TXN-001. You have sent 8,000 RWF to Olivier Nkurunziza 0782002002. Fee: 80 RWF. Balance: 43,920 RWF. Date: 01/03/2024.",
+"parse_status": "SUCCESS",
+"failure_reason": null,
+"received_at": "2024-03-01T09:10:00Z",
+"processed_at": "2024-03-01T09:10:05Z"
+},
+
+"SmsRawMessage_failed": {
+"_maps_to": "sms_raw_messages table",
+"_note": "This is what a failed SMS looks like - no transaction will be created for this one",
+"sms_id": 11,
+"message_uid": "hash011",
+"raw_body": "MTN MoMo Alert: Trnsfer cmplete Amt:?? Ref no: N/A [MSG CORRUPTED]",
+"parse_status": "FAILED",
+"failure_reason": "Could not extract amount - message was corrupted",
+"received_at": "2024-03-10T10:30:00Z",
+"processed_at": "2024-03-10T10:30:03Z"
+},
+
+"Tag": {
+"_maps_to": "tags table",
+"_columns": "tag_id, tag_name, tag_color",
+"tag_id": 1,
+"tag_name": "high-value",
+"tag_color": "#E74C3C"
+},
+
+"Transaction_flat": {
+"_maps_to": "transactions table",
+"_columns": "transaction_id, sms_id, reference_id, sender_id, receiver_id, agent_id, merchant_id, category_id, reverses_transaction_id, amount, fee, sender_balance_after, transaction_date, status, created_at",
+"_note": "Flat version with raw FK ids only - used in list views so we do not load too much data at once",
+"transaction_id": 7,
+"sms_id": 7,
+"reference_id": "TXN-007",
+"sender_id": 4,
+"receiver_id": 9,
+"agent_id": null,
+"merchant_id": 2,
+"category_id": 4,
+"reverses_transaction_id": null,
+"amount": 32000.00,
+"fee": 0.00,
+"sender_balance_after": 87100.00,
+"transaction_date": "2024-03-07T13:15:00Z",
+"status": "REVERSED",
+"created_at": "2024-03-07T13:15:00Z"
+},
+
+"SystemLog": {
+"_maps_to": "system_logs table",
+"_columns": "log_id, sms_id, transaction_id, triggered_by, log_level, event_type, message, source_file, created_at",
+"log_id": 6,
+"sms_id": 11,
+"transaction_id": null,
+"triggered_by": null,
+"log_level": "ERROR",
+"event_type": "PARSE_ERROR",
+"message": "Could not parse SMS hash011. Amount field missing or corrupted. Moved to dead_letter.",
+"source_file": "categorize.py",
+"created_at": "2024-03-10T10:30:03Z"
+}
+
+},
+
+"complex_objects": {
+
+"Transaction_peer_transfer": {
+"_description": "PEER TRANSFER - Amina sends money to Olivier. Full nested version. All FK ids replaced with actual objects. This is what GET /api/transactions/1 returns.",
+"_endpoint": "GET /api/v1/transactions/1",
+
+"transaction_id": 1,
+"reference_id": "TXN-001",
+"amount": 8000.00,
+"fee": 80.00,
+"sender_balance_after": 43920.00,
+"transaction_date": "2024-03-01T09:10:00Z",
+"status": "SUCCESS",
+"created_at": "2024-03-01T09:10:00Z",
+
+"source_sms": {
+"sms_id": 1,
+"message_uid": "hash001",
+"raw_body": "TxId: TXN-001. You have sent 8,000 RWF to Olivier Nkurunziza 0782002002. Fee: 80 RWF. Balance: 43,920 RWF. Date: 01/03/2024.",
+"parse_status": "SUCCESS",
+"received_at": "2024-03-01T09:10:00Z",
+"processed_at": "2024-03-01T09:10:05Z"
+},
+
+"category": {
+"category_id": 3,
+"category_name": "PEER_TRANSFER",
+"description": "Sending money directly to another person",
+"requires_agent": false,
+"requires_merchant": false
+},
+
+"sender": {
+"user_id": 1,
+"phone_number": "+250781001001",
+"full_name": "Amina Uwimana",
+"account_type": "PERSONAL",
+"wallet": {
+"wallet_id": 1,
+"current_balance": 43920.00,
+"wallet_status": "ACTIVE"
+}
+},
+
+"receiver": {
+"user_id": 2,
+"phone_number": "+250782002002",
+"full_name": "Olivier Nkurunziza",
+"account_type": "PERSONAL",
+"wallet": {
+"wallet_id": 2,
+"current_balance": 18750.00,
+"wallet_status": "ACTIVE"
+}
+},
+
+"agent": null,
+"merchant": null,
+"reversal_of": null,
+
+"tags": [
+{
+"tag_id": 3,
+"tag_name": "reconciled",
+"tag_color": "#2980B9",
+"tagged_at": "2024-03-01T09:10:06Z",
+"tagged_by": "reconciliation"
+}
+]
+},
+
+"Transaction_deposit": {
+"_description": "DEPOSIT - Kwame the agent deposits cash for Ngozi. Agent is present, merchant is null. sender_balance_after is null because the agent does not have a tracked balance in this transaction.",
+"_endpoint": "GET /api/v1/transactions/3",
+
+"transaction_id": 3,
+"reference_id": "TXN-003",
+"amount": 30000.00,
+"fee": 0.00,
+"sender_balance_after": null,
+"transaction_date": "2024-03-03T08:45:00Z",
+"status": "SUCCESS",
+"created_at": "2024-03-03T08:45:00Z",
+
+"source_sms": {
+"sms_id": 3,
+"message_uid": "hash003",
+"raw_body": "TxId: TXN-003. You have received a cash deposit of 30,000 RWF via agent AGT-ACC-00301. Balance: 39,200 RWF. Date: 03/03/2024.",
+"parse_status": "SUCCESS",
+"received_at": "2024-03-03T08:45:00Z",
+"processed_at": "2024-03-03T08:45:04Z"
+},
+
+"category": {
+"category_id": 1,
+"category_name": "DEPOSIT",
+"description": "Cash deposited into wallet through an agent",
+"requires_agent": true,
+"requires_merchant": false
+},
+
+"sender": {
+"user_id": 6,
+"phone_number": "+233201006006",
+"full_name": "Kwame Asante",
+"account_type": "AGENT"
+},
+
+"receiver": {
+"user_id": 5,
+"phone_number": "+234802005005",
+"full_name": "Ngozi Adeyemi",
+"account_type": "PERSONAL",
+"wallet": {
+"wallet_id": 5,
+"current_balance": 39200.00,
+"wallet_status": "ACTIVE"
+}
+},
+
+"agent": {
+"agent_id": 1,
+"agent_code": "AGT-ACC-00301",
+"business_name": "Kwame MoMo Services",
+"location": "Accra, Greater Accra, Ring Road Central",
+"is_verified": true
+},
+
+"merchant": null,
+"reversal_of": null,
+
+"tags": [
+{
+"tag_id": 3,
+"tag_name": "reconciled",
+"tag_color": "#2980B9",
+"tagged_at": "2024-03-03T08:45:05Z",
+"tagged_by": "reconciliation"
+}
+]
+},
+
+"Transaction_merchant_payment": {
+"_description": "MERCHANT PAYMENT - Chukwuemeka pays Nwosu Fashion House. Merchant is present, agent is null. This transaction was later reversed so status is REVERSED.",
+"_endpoint": "GET /api/v1/transactions/7",
+
+"transaction_id": 7,
+"reference_id": "TXN-007",
+"amount": 32000.00,
+"fee": 0.00,
+"sender_balance_after": 87100.00,
+"transaction_date": "2024-03-07T13:15:00Z",
+"status": "REVERSED",
+"created_at": "2024-03-07T13:15:00Z",
+
+"source_sms": {
+"sms_id": 7,
+"message_uid": "hash007",
+"raw_body": "TxId: TXN-007. Payment of 32,000 RWF to Nwosu Fashion House MRC-LOS-07742. Balance: 87,100 RWF. Date: 07/03/2024.",
+"parse_status": "SUCCESS",
+"received_at": "2024-03-07T13:15:00Z",
+"processed_at": "2024-03-07T13:15:08Z"
+},
+
+"category": {
+"category_id": 4,
+"category_name": "MERCHANT_PAYMENT",
+"description": "Paying a registered business with MoMo",
+"requires_agent": false,
+"requires_merchant": true
+},
+
+"sender": {
+"user_id": 4,
+"phone_number": "+234801004004",
+"full_name": "Chukwuemeka Okafor",
+"account_type": "PERSONAL",
+"wallet": {
+"wallet_id": 4,
+"current_balance": 76300.00,
+"wallet_status": "ACTIVE"
+}
+},
+
+"receiver": {
+"user_id": 9,
+"phone_number": "+234803009009",
+"full_name": "Emeka Nwosu",
+"account_type": "MERCHANT",
+"wallet": {
+"wallet_id": 9,
+"current_balance": 155000.00,
+"wallet_status": "ACTIVE"
+}
+},
+
+"agent": null,
+
+"merchant": {
+"merchant_id": 2,
+"merchant_code": "MRC-LOS-07742",
+"business_name": "Nwosu Fashion House",
+"business_category": "RETAIL",
+"is_verified": true
+},
+
+"reversal_of": null,
+
+"tags": [
+{
+"tag_id": 1,
+"tag_name": "high-value",
+"tag_color": "#E74C3C",
+"tagged_at": "2024-03-07T13:15:09Z",
+"tagged_by": "etl_pipeline"
+}
+]
+},
+
+"Transaction_reversal": {
+"_description": "REVERSAL - Emeka Nwosu refunds Chukwuemeka. The reversal_of field shows TXN-007 which is the original transaction being cancelled. This is how the self-referencing FK looks in JSON.",
+"_endpoint": "GET /api/v1/transactions/11",
+
+"transaction_id": 11,
+"reference_id": "TXN-011-REV",
+"amount": 32000.00,
+"fee": 0.00,
+"sender_balance_after": 187000.00,
+"transaction_date": "2024-03-11T10:00:00Z",
+"status": "SUCCESS",
+"created_at": "2024-03-11T10:00:00Z",
+
+"source_sms": null,
+
+"category": {
+"category_id": 10,
+"category_name": "REVERSAL",
+"description": "Cancelling a previous transaction and refunding it",
+"requires_agent": false,
+"requires_merchant": false
+},
+
+"sender": {
+"user_id": 9,
+"phone_number": "+234803009009",
+"full_name": "Emeka Nwosu",
+"account_type": "MERCHANT"
+},
+
+"receiver": {
+"user_id": 4,
+"phone_number": "+234801004004",
+"full_name": "Chukwuemeka Okafor",
+"account_type": "PERSONAL",
+"wallet": {
+"wallet_id": 4,
+"current_balance": 76300.00,
+"wallet_status": "ACTIVE"
+}
+},
+
+"agent": null,
+"merchant": null,
+
+"reversal_of": {
+"_note": "This points back to TXN-007 - the transaction that was cancelled",
+"transaction_id": 7,
+"reference_id": "TXN-007",
+"amount": 32000.00,
+"transaction_date": "2024-03-07T13:15:00Z",
+"status": "REVERSED"
+},
+
+"tags": [
+{
+"tag_id": 2,
+"tag_name": "flagged",
+"tag_color": "#F39C12",
+"tagged_at": "2024-03-11T10:00:01Z",
+"tagged_by": "etl_pipeline"
+}
+]
+}
+
+},
+
+"api_response_examples": {
+
+"GET /api/v1/transactions": {
+"_description": "List of transactions - flat version for performance. We do not nest full objects here because it would be too slow.",
+"status": "success",
+"page": 1,
+"per_page": 10,
+"total_records": 11,
+"data": [
+{
+"transaction_id": 11,
+"reference_id": "TXN-011-REV",
+"category_name": "REVERSAL",
+"sender_name": "Emeka Nwosu",
+"sender_phone": "+234803009009",
+"receiver_name": "Chukwuemeka Okafor",
+"agent_code": null,
+"merchant_code": null,
+"amount": 32000.00,
+"fee": 0.00,
+"transaction_date": "2024-03-11T10:00:00Z",
+"status": "SUCCESS",
+"tags": ["flagged"]
+},
+{
+"transaction_id": 10,
+"reference_id": "TXN-010",
+"category_name": "BANK_TRANSFER",
+"sender_name": "Emeka Nwosu",
+"sender_phone": "+234803009009",
+"receiver_name": null,
+"agent_code": null,
+"merchant_code": null,
+"amount": 60000.00,
+"fee": 300.00,
+"transaction_date": "2024-03-10T08:00:00Z",
+"status": "SUCCESS",
+"tags": ["high-value"]
+},
+{
+"transaction_id": 7,
+"reference_id": "TXN-007",
+"category_name": "MERCHANT_PAYMENT",
+"sender_name": "Chukwuemeka Okafor",
+"sender_phone": "+234801004004",
+"receiver_name": "Emeka Nwosu",
+"agent_code": null,
+"merchant_code": "MRC-LOS-07742",
+"amount": 32000.00,
+"fee": 0.00,
+"transaction_date": "2024-03-07T13:15:00Z",
+"status": "REVERSED",
+"tags": ["high-value"]
+}
+]
+},
+
+"GET /api/v1/analytics/summary": {
+"_description": "Summary stats for the dashboard charts.",
+"status": "success",
+"period": {
+"from": "2024-03-01T00:00:00Z",
+"to": "2024-03-11T23:59:59Z"
+},
+"totals": {
+"total_transactions": 11,
+"total_volume_rwf": 228800.00,
+"total_fees_rwf": 630.00,
+"successful": 10,
+"reversed": 1,
+"failed": 0
+},
+"sms_pipeline": {
+"total_received": 12,
+"successfully_parsed": 10,
+"failed_to_parse": 1,
+"skipped": 1,
+"parse_success_rate": "83.3%"
+},
+"by_category": [
+{ "category_name": "BANK_TRANSFER", "count": 1, "total_rwf": 60000.00 },
+{ "category_name": "REVERSAL", "count": 1, "total_rwf": 32000.00 },
+{ "category_name": "PEER_TRANSFER", "count": 3, "total_rwf": 33000.00 },
+{ "category_name": "DEPOSIT", "count": 1, "total_rwf": 30000.00 },
+{ "category_name": "MERCHANT_PAYMENT", "count": 1, "total_rwf": 15000.00 },
+{ "category_name": "WITHDRAWAL", "count": 1, "total_rwf": 10000.00 },
+{ "category_name": "BILL_PAYMENT", "count": 1, "total_rwf": 4800.00 },
+{ "category_name": "AIRTIME_PURCHASE", "count": 1, "total_rwf": 2000.00 }
+]
+},
+
+"GET /api/v1/logs": {
+"_description": "System logs showing what the ETL pipeline did. Related SMS and transaction shown as small summaries.",
+"status": "success",
+"page": 1,
+"per_page": 10,
+"total_records": 10,
+"data": [
+{
+"log_id": 6,
+"log_level": "ERROR",
+"event_type": "PARSE_ERROR",
+"message": "Could not parse SMS hash011. Amount field missing or corrupted. Moved to dead_letter.",
+"source_file": "categorize.py",
+"created_at": "2024-03-10T10:30:03Z",
+"related_sms": {
+"sms_id": 11,
+"message_uid": "hash011",
+"parse_status": "FAILED"
+},
+"related_transaction": null,
+"triggered_by": null
+},
+{
+"log_id": 8,
+"log_level": "INFO",
+"event_type": "REVERSAL",
+"message": "Reversal TXN-011-REV processed. Original TXN-007 status updated to REVERSED.",
+"source_file": "load_db.py",
+"created_at": "2024-03-11T10:00:00Z",
+"related_sms": null,
+"related_transaction": {
+"transaction_id": 11,
+"reference_id": "TXN-011-REV",
+"amount": 32000.00,
+"status": "SUCCESS"
+},
+"triggered_by": null
+}
+]
+}
+
+},
+
+"sql_to_json_mapping_explained": {
+"_description": "This section documents exactly how each SQL table and column maps to a JSON field. This is important because the database stores data in separate tables using foreign keys, but the API needs to return everything in one connected object.",
+
+"table_mappings": [
+{
+"sql_table": "transaction_categories",
+"json_representation": "category object nested inside transaction",
+"example_sql_columns": ["category_id", "category_name", "description", "requires_agent", "requires_merchant", "created_at"],
+"example_json_path": "transaction.category.category_name",
+"note": "In the database this is a separate table. In JSON we nest it directly inside the transaction so the API client does not need to make a second request."
+},
+{
+"sql_table": "users",
+"json_representation": "sender and receiver objects nested inside transaction",
+"example_sql_columns": ["user_id", "phone_number", "full_name", "account_type", "is_active", "created_at", "updated_at"],
+"example_json_path": "transaction.sender.full_name and transaction.receiver.full_name",
+"note": "The users table is referenced twice in the transactions table - once as sender_id and once as receiver_id. In JSON both become full nested objects."
+},
+{
+"sql_table": "wallets",
+"json_representation": "wallet object nested inside sender or receiver",
+"example_sql_columns": ["wallet_id", "user_id", "current_balance", "daily_limit", "wallet_status", "last_transaction_at"],
+"example_json_path": "transaction.sender.wallet.current_balance",
+"note": "Wallets have a 1 to 1 relationship with users. In JSON we nest the wallet inside the user object."
+},
+{
+"sql_table": "agents",
+"json_representation": "agent object nested directly inside transaction",
+"example_sql_columns": ["agent_id", "user_id", "agent_code", "business_name", "location", "is_verified"],
+"example_json_path": "transaction.agent.agent_code",
+"note": "Only present when the transaction type is DEPOSIT or WITHDRAWAL. Otherwise this field is null."
+},
+{
+"sql_table": "merchants",
+"json_representation": "merchant object nested directly inside transaction",
+"example_sql_columns": ["merchant_id", "user_id", "merchant_code", "business_name", "business_category", "settlement_account", "is_verified"],
+"example_json_path": "transaction.merchant.merchant_code",
+"note": "Only present when the transaction type is MERCHANT_PAYMENT. Otherwise this field is null."
+},
+{
+"sql_table": "sms_raw_messages",
+"json_representation": "source_sms object nested inside transaction",
+"example_sql_columns": ["sms_id", "message_uid", "raw_body", "parse_status", "failure_reason", "received_at", "processed_at"],
+"example_json_path": "transaction.source_sms.raw_body",
+"note": "This links the transaction back to the original SMS that created it. Can be null for reversals which are created by the system not by an SMS."
+},
+{
+"sql_table": "transactions (self-referencing FK)",
+"json_representation": "reversal_of object nested inside transaction",
+"example_sql_columns": ["transaction_id", "reference_id", "amount", "transaction_date", "status"],
+"example_json_path": "transaction.reversal_of.reference_id",
+"note": "This is a special case. The reverses_transaction_id column in the transactions table points back to another row in the same table. In JSON we show just a small summary of the original transaction."
+},
+{
+"sql_table": "tags + transaction_tags (junction)",
+"json_representation": "tags array inside transaction",
+"example_sql_columns": ["tag_id", "tag_name", "tag_color", "tagged_at", "tagged_by"],
+"example_json_path": "transaction.tags[0].tag_name",
+"note": "In the database there are two tables here - tags and transaction_tags. The junction table transaction_tags stores the many-to-many relationship. In JSON we resolve this into a simple array of tag objects."
+},
+{
+"sql_table": "system_logs",
+"json_representation": "standalone log object with nested sms and transaction summaries",
+"example_sql_columns": ["log_id", "sms_id", "transaction_id", "triggered_by", "log_level", "event_type", "message", "source_file", "created_at"],
+"example_json_path": "log.related_sms.sms_id and log.related_transaction.reference_id",
+"note": "The three FK columns (sms_id, transaction_id, triggered_by) each become a small nested summary object in the JSON response. They are all nullable so can be null when the log is not related to any specific SMS or transaction."
+}
+],
+
+"data_type_mappings": {
+"INT (SQL)": "number (JSON)",
+"VARCHAR and TEXT (SQL)": "string (JSON)",
+"DECIMAL (SQL)": "number with decimal point (JSON) e.g 8000.00",
+"DATETIME (SQL)": "string in ISO 8601 format (JSON) e.g 2024-03-01T09:10:00Z",
+"TINYINT 1 or 0 (SQL)": "boolean true or false (JSON)",
+"NULL (SQL)": "null (JSON)"
+},
+
+"nesting_rules": {
+"list_view": "When returning a list of transactions we use flat JSON with FK ids only. This keeps the response small and fast.",
+"detail_view": "When returning a single transaction we use fully nested JSON where every FK is replaced with the full related object.",
+"always_nested": "category, source_sms and tags are always nested even in list views because they are needed for display.",
+"nullable_fields": "agent, merchant and reversal_of are null when not applicable to that transaction type. The API always includes the key but sets the value to null."
+}
+}
+}
