@@ -32,21 +32,12 @@ We are currently in **Week 2  Database Design and Implementation**.
 
 **Team Name:** Yellow
 
-<<<<<<< HEAD
 | Name | GitHub |
 |------|--------|
 | Chigozie Ndubuaku Emmanuel | [@Chigozie-Nuel](https://github.com/Chigozie-Nuel) |
 | Gyann Caleb | [@AR-JUNA](https://github.com/AR-JUNA) |
 | Maoulaika Mugeni | [@mmugeni](https://github.com/mmugeni) |
 | Lisette Mukiza | [@lisette-lachiever](https://github.com/lisette-lachiever) |
-=======
-| Name | GitHub 
-|------|--------
-| Chigozie Ndubuaku Emmanuel | [@Chigozie-Nuel](https://github.com/Chigozie-Nuel) 
-| Arjuna Caleb Gyan | [@AR-JUNA](https://github.com/AR-JUNA) 
-| Maoulaika Mugeni | [@mmugeni](https://github.com/mmugeni)
-| Lisette Mukiza | [@lisette-lachiever](https://github.com/lisette-lachiever) 
->>>>>>> fe00b573b3a64a613385ea9611830589cb44ea50
 
 ## Architecture
 
@@ -206,3 +197,4 @@ bash scripts/run_etl.sh
 bash scripts/serve_frontend.sh
 # Open http://localhost:8000
 ```
+
