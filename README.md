@@ -2,7 +2,7 @@
 
 ![Status](https://img.shields.io/badge/Status-In%20Progress-orange?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.10+-blue?style=flat-square&logo=python)
-![SQLite](https://img.shields.io/badge/Database-SQLite3-lightgrey?style=flat-square&logo=sqlite)
+![MySQL](https://img.shields.io/badge/Database-MySQL%208.0-blue?style=flat-square&logo=mysql)
 
 > A fullstack application that processes, categorizes, and visualizes MoMo (Mobile Money) SMS transaction data from XML format into an interactive dashboard.
 
@@ -11,6 +11,7 @@
 - [Team](#team)
 - [Architecture](#architecture)
 - [Project Structure](#project-structure)
+- [Database Design](#database-design)
 - [Tech Stack](#tech-stack)
 - [Scrum Board](#scrum-board)
 - [Getting Started](#getting-started)
@@ -19,28 +20,26 @@
 
 This project involves the design and development of an enterprise-level fullstack application focused on processing and analyzing MoMo (Mobile Money) SMS transaction data. The core objective is to transform raw MoMo SMS data, provided in XML format, into structured, actionable insights through a robust backend and an intuitive frontend interface.
 
-
 The system will:
 - Parse and clean the raw XML transaction data
 - Categorize each transaction (payments, transfers, withdrawals, etc.)
-- Store everything in a SQLite database
+- Store everything in a MySQL database
 - Display the data on a frontend dashboard with charts and tables
 
-We are currently in **Week 1 Team Setup and Planning**.
+We are currently in **Week 2  Database Design and Implementation**.
 
 ## Team
 
 **Team Name:** Yellow
 
-| Name | GitHub 
-|------|--------
-| Chigozie Ndubuaku Emmanuel | [@Chigozie-Nuel](https://github.com/Chigozie-Nuel) 
-| Gyann Caleb | [@AR-JUNA](https://github.com/AR-JUNA) 
-| Maoulaika Mugeni | [@mmugeni](https://github.com/mmugeni)
-| Lisette Mukiza | [@lisette-lachiever](https://github.com/lisette-lachiever) 
+| Name | GitHub |
+|------|--------|
+| Chigozie Ndubuaku Emmanuel | [@Chigozie-Nuel](https://github.com/Chigozie-Nuel) |
+| Gyann Caleb | [@AR-JUNA](https://github.com/AR-JUNA) |
+| Maoulaika Mugeni | [@mmugeni](https://github.com/mmugeni) |
+| Lisette Mukiza | [@lisette-lachiever](https://github.com/lisette-lachiever) |
 
-
-## Architecture 
+## Architecture
 
 The system is split into four layers that feed into each other:
 
@@ -51,7 +50,7 @@ The system is split into four layers that feed into each other:
 [ ETL Pipeline ]  -->  parse > clean > categorize > load
       |
       v
-[ SQLite Database ]  +  dashboard.json (for frontend)
+[ MySQL Database ]  +  dashboard.json (for frontend)
       |
       v
 [ Frontend Dashboard ]  -->  charts + transaction table
@@ -68,6 +67,15 @@ momo-dashboard/
 ├── .env.example                 # Example config file copy this and add your settings
 ├── requirements.txt             # Python libraries needed to run the project
 ├── index.html                   # The main page that opens in the browser
+│
+├── docs/                        # Project documentation
+│   └── erd_diagram.png          # Entity Relationship Diagram for the database (Week 2)
+│
+├── database/                    # Database setup files (Week 2)
+│   └── database_setup.sql       # Creates all tables, adds sample data and CRUD queries
+│
+├── examples/                    # Example data formats (Week 2)
+│   └── json_schemas.json        # Shows how each database table looks as a JSON API response
 │
 ├── web/                         # Everything the user sees in the browser
 │   ├── styles.css               # Makes the dashboard look good
@@ -110,17 +118,46 @@ momo-dashboard/
     └── test_categorize.py       # Tests that transactions are being categorized correctly
 ```
 
+## Database Design
+
+In Week 2 we designed and implemented the MySQL database that stores all MoMo transaction data. The ERD was created using dbdiagram.io and is saved in `docs/erd_diagram.png`.
+
+The database has **10 tables** covering every entity in the system.
+
+| Table | What it stores |
+|-------|---------------|
+| `users` | Everyone in the system  customers, agents and merchants |
+| `wallets` | Each user's balance and daily limit (1 wallet per user) |
+| `agents` | MoMo agents who handle cash deposits and withdrawals |
+| `merchants` | Businesses that accept MoMo payments |
+| `transaction_categories` | The 10 transaction types (DEPOSIT, WITHDRAWAL, PEER_TRANSFER etc) |
+| `sms_raw_messages` | Every SMS received, whether it parsed successfully or not |
+| `transactions` | Every MoMo transaction  the main table |
+| `tags` | Labels like "high-value" or "flagged" applied to transactions |
+| `transaction_tags` | Junction table  connects transactions to tags (many-to-many) |
+| `system_logs` | Full audit trail of everything the ETL pipeline does |
+
+The `examples/json_schemas.json` file shows how each table maps to a JSON object in the API, including fully nested transaction examples and a SQL-to-JSON mapping table.
+
+
 ## Tech Stack
 
 **Backend**
 - Python 3.10+
-- lxml / ElementTree - XML parsing
-- python-dateutil - date normalization
-- SQLite3 - database storage
+- lxml / ElementTree  XML parsing
+- python-dateutil  date normalization
+- MySQL 8.0  database storage
+- FastAPI  API development
 
 **Frontend**
-- HTML, CSS, Vanilla JavaScript
-- Chart.js - data visualization
+- HTML5 / CSS3
+- Vanilla JavaScript
+- Chart.js / D3.js  data visualization
+
+**Development Tools**
+- Git & GitHub  version control
+- dbdiagram.io  ERD and database design
+- GitHub Projects  Agile workflow management
 
 ## Scrum Board
 
@@ -145,12 +182,17 @@ cd momo-dashboard
 pip install -r requirements.txt
 ```
 
-**3. Run the ETL pipeline**
+**3. Set up the database**
+```bash
+# Open MySQL Workbench, File > Open SQL Script > database/database_setup.sql
+```
+
+**4. Run the ETL pipeline**
 ```bash
 bash scripts/run_etl.sh
 ```
 
-**4. Launch the dashboard**
+**5. Launch the dashboard**
 ```bash
 bash scripts/serve_frontend.sh
 # Open http://localhost:8000
