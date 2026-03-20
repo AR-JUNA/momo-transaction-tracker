@@ -288,3 +288,31 @@ ALTER TABLE transactions
   ADD CONSTRAINT fk_txn_reversal
     FOREIGN KEY (reverses_transaction_id) REFERENCES transactions(transaction_id)
     ON UPDATE CASCADE ON DELETE SET NULL;
+
+ALTER TABLE transaction_tags
+  ADD CONSTRAINT fk_tt_transaction
+    FOREIGN KEY (transaction_id) REFERENCES transactions(transaction_id)
+    ON UPDATE CASCADE ON DELETE CASCADE;
+
+ALTER TABLE transaction_tags
+  ADD CONSTRAINT fk_tt_tag
+    FOREIGN KEY (tag_id) REFERENCES tags(tag_id)
+    ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+-- ============================================================
+-- SAMPLE DATA & TESTING (CRUD)
+-- ============================================================
+
+-- INSERT (Create)
+INSERT INTO transaction_categories (category_name) VALUES ('P2P'), ('CASH_IN'), ('CASH_OUT');
+INSERT INTO users (phone_number, full_name) VALUES ('+250780000001', 'Alice'), ('+250780000002', 'Bob'), ('+250780000005', 'Eve');
+
+-- SELECT (Read)
+SELECT * FROM users;
+
+-- UPDATE (Update)
+UPDATE users SET account_type = 'AGENT' WHERE full_name = 'Alice';
+
+-- DELETE (Delete)
+DELETE FROM users WHERE full_name = 'Eve';
