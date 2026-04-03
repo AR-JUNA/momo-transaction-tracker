@@ -151,11 +151,11 @@ The database has **10 tables** covering every entity in the system.
 
 The `examples/json_schemas.json` file shows how each table maps to a JSON object in the API, including fully nested transaction examples and a SQL-to-JSON mapping table.
 
----
+
 
 ## REST API
 
-> Added in **Week 4**. The API is built in plain Python using `http.server`no external frameworks.
+>The API is built in plain Python using `http.server`no external frameworks.
 
 The API parses `modified_sms_v2.xml` (1,606 transactions) and exposes them through five CRUD endpoints protected by HTTP Basic Authentication. All changes made through the APIadds, updates, and deletesare saved to `data/transactions.json` and survive server restarts.
 
@@ -229,7 +229,7 @@ python dsa/dsa_search.py
 
 This runs 52 searches on all 1,606 records and prints a comparison between Linear Search O(n) and Dictionary Lookup O(1). Dictionary lookup is **~166x faster**.
 
----
+
 
 ## Tech Stack
 
@@ -243,7 +243,7 @@ This runs 52 searches on all 1,606 records and prints a comparison between Linea
 **Frontend**
 - HTML5 / CSS3
 - Vanilla JavaScript
-- Chart.js / D3.jsdat
+- Chart.js / D3.js
 
 **Development Tools**
 - Git & GitHubversion control
@@ -278,7 +278,7 @@ cd momo-dashboard
 bash scripts/run_etl.sh
 ```
 
-**5. Start the REST API** *(Week 4)*
+**5. Start the REST API** 
 ```bash
 # Make sure modified_sms_v2.xml is in the project root
 python api/server.py
