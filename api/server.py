@@ -1,5 +1,5 @@
 """
-api/app.py
+api/server.py
 ----------
 I built this REST API using Python's built-in http.server module (no Flask,
 no FastAPI) exactly as the assignment requires.
@@ -330,3 +330,338 @@ def _read_body(handler) -> dict | None:
         return None
 
 
+# Request Handler
+
+class MoMoHandler(BaseHTTPRequestHandler):
+    """
+    I handle all incoming HTTP requests.
+    I override log_message to suppress the default noisy output because
+    I have my own _log function that looks much cleaner.
+    """
+
+    def log_message(self, fmt, *args):
+        """I suppress the default http.server log output."""
+        pass
+
+    def _authenticate(self) -> tuple[bool, str | None]:
+        """
+        I check auth and immediately send a 401 if it fails.
+        Returns (True, username) or (False, None).
+        """
+        ok, user = _check_auth(self)
+        if not ok:
+            self.send_response(401)
+            self.send_header("WWW-Authenticate", 'Basic realm="MoMo API"')
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            body = json.dumps({"error": "Unauthorized. Provide valid Basic Auth credentials.", "status": 401})
+            self.wfile.write(body.encode())
+            _log(self.command, self.path, 401, "bad credentials")
+            stats.record(self.command, 401)
+        return ok, user
+
+    #Routing 
+    def do_GET(self):
+        ok, user = self._authenticate()
+        if not ok:
+            return
+        self._route_get(user)
+
+    def do_POST(self):
+        ok, user = self._authenticate()
+        if not ok:
+            return
+        self._route_post(user)
+
+    def do_PUT(self):
+        ok, user = self._authenticate()
+        if not ok:
+            return
+        self._route_put(user)
+
+    def do_DELETE(self):
+        ok, user = self._authenticate()
+        if not ok:
+            return
+        self._route_delete(user)
+
+    def do_OPTIONS(self):
+        """I handle CORS preflight requests."""
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin",  "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
+        self.end_headers()
+
+    # GET routes
+
+    def _route_get(self, user: str):
+        parsed = urlparse(self.path)
+        path   = parsed.path.rstrip("/")
+        qs     = parse_qs(parsed.query)
+
+        # GET /health
+        if path == "/health":
+            data = {
+                "status":           "ok",
+                "uptime":           stats.uptime(),
+                "transactions":     store.count,
+                "total_requests":   stats.total,
+                "successful":       stats.success,
+                "auth_failures":    stats.auth_fail,
+            }
+            _json_response(self, 200, data)
+            _log("GET", path, 200)
+            stats.record("GET", 200)
+            return
+
+        # GET /transactions
+        if path == "/transactions":
+            page     = int(qs.get("page",     ["1"])[0])
+            per_page = int(qs.get("per_page", ["50"])[0])
+            txn_type = qs.get("type",  [None])[0]
+            per_page = min(per_page, 200)   # I cap it at 200 to protect performance
+
+            txns, total = store.get_all(page, per_page, txn_type)
+            total_pages = (total + per_page - 1) // per_page
+
+            resp = {
+                "status":      "success",
+                "page":        page,
+                "per_page":    per_page,
+                "total":       total,
+                "total_pages": total_pages,
+                "data":        txns,
+            }
+            _json_response(self, 200, resp)
+            _log("GET", path, 200, f"{len(txns)} records (page {page}/{total_pages})")
+            stats.record("GET", 200)
+            return
+
+        # GET /transactions/{id}
+        m = re.fullmatch(r"/transactions/(\d+)", path)
+        if m:
+            txn_id = int(m.group(1))
+            txn    = store.get_one(txn_id)
+            if txn is None:
+                _error(self, 404, f"Transaction with id={txn_id} not found.")
+                _log("GET", path, 404)
+                stats.record("GET", 404)
+                return
+            _json_response(self, 200, {"status": "success", "data": txn})
+            _log("GET", path, 200)
+            stats.record("GET", 200)
+            return
+
+        # GET /stats  (bonus endpoint — shows live server statistics)
+        if path == "/stats":
+            data = {
+                "uptime":          stats.uptime(),
+                "total_requests":  stats.total,
+                "by_method":       stats.by_method,
+                "auth_failures":   stats.auth_fail,
+                "not_found":       stats.not_found,
+                "server_errors":   stats.errors,
+                "transactions_in_memory": store.count,
+            }
+            _json_response(self, 200, data)
+            _log("GET", path, 200)
+            stats.record("GET", 200)
+            return
+
+        _error(self, 404, f"Route '{path}' not found.")
+        _log("GET", path, 404)
+        stats.record("GET", 404)
+
+    # POST route 
+    def _route_post(self, user: str):
+        parsed = urlparse(self.path)
+        path   = parsed.path.rstrip("/")
+
+        if path != "/transactions":
+            _error(self, 404, f"Route '{path}' not found.")
+            _log("POST", path, 404)
+            stats.record("POST", 404)
+            return
+
+        body = _read_body(self)
+        if body is None:
+            _error(self, 400, "Invalid JSON in request body.")
+            _log("POST", path, 400, "bad JSON")
+            stats.record("POST", 400)
+            return
+
+        # I require these fields for a new transaction
+        required = ["type", "amount"]
+        missing  = [f for f in required if f not in body]
+        if missing:
+            _error(self, 400, f"Missing required fields: {missing}")
+            _log("POST", path, 400, f"missing: {missing}")
+            stats.record("POST", 400)
+            return
+
+        # I validate that amount is a positive number
+        try:
+            amount = float(body["amount"])
+            if amount <= 0:
+                raise ValueError
+        except (ValueError, TypeError):
+            _error(self, 400, "Field 'amount' must be a positive number.")
+            _log("POST", path, 400, "invalid amount")
+            stats.record("POST", 400)
+            return
+
+        new_txn = store.add(body)
+        _json_response(self, 201, {"status": "created", "data": new_txn})
+        _log("POST", path, 201, f"id={new_txn['id']}")
+        stats.record("POST", 201)
+
+    #PUT route 
+
+    def _route_put(self, user: str):
+        parsed = urlparse(self.path)
+        path   = parsed.path.rstrip("/")
+
+        m = re.fullmatch(r"/transactions/(\d+)", path)
+        if not m:
+            _error(self, 404, f"Route '{path}' not found.")
+            _log("PUT", path, 404)
+            stats.record("PUT", 404)
+            return
+
+        txn_id = int(m.group(1))
+        body   = _read_body(self)
+
+        if body is None:
+            _error(self, 400, "Invalid JSON in request body.")
+            _log("PUT", path, 400, "bad JSON")
+            stats.record("PUT", 400)
+            return
+
+        if not body:
+            _error(self, 400, "Request body cannot be empty.")
+            _log("PUT", path, 400, "empty body")
+            stats.record("PUT", 400)
+            return
+
+        updated = store.update(txn_id, body)
+        if updated is None:
+            _error(self, 404, f"Transaction with id={txn_id} not found.")
+            _log("PUT", path, 404)
+            stats.record("PUT", 404)
+            return
+
+        _json_response(self, 200, {"status": "updated", "data": updated})
+        _log("PUT", path, 200, f"id={txn_id}")
+        stats.record("PUT", 200)
+
+    # DELETE route
+
+    def _route_delete(self, user: str):
+        parsed = urlparse(self.path)
+        path   = parsed.path.rstrip("/")
+
+        m = re.fullmatch(r"/transactions/(\d+)", path)
+        if not m:
+            _error(self, 404, f"Route '{path}' not found.")
+            _log("DELETE", path, 404)
+            stats.record("DELETE", 404)
+            return
+
+        txn_id  = int(m.group(1))
+        deleted = store.delete(txn_id)
+
+        if not deleted:
+            _error(self, 404, f"Transaction with id={txn_id} not found.")
+            _log("DELETE", path, 404)
+            stats.record("DELETE", 404)
+            return
+
+        _json_response(self, 200, {"status": "deleted", "id": txn_id})
+        _log("DELETE", path, 200, f"id={txn_id}")
+        stats.record("DELETE", 200)
+
+
+# Terminal startup banner
+
+def _print_banner(txn_count: int) -> None:
+    """I print a clean startup screen when the server launches."""
+    W = 62
+
+    print()
+    print(f"  {C.BG_DARK}{C.WHITE}{C.BOLD}{'':^{W}}{C.RESET}")
+    print(f"  {C.BG_DARK}{C.WHITE}{C.BOLD}{'  MoMo Transaction Analytics API':^{W}}{C.RESET}")
+    print(f"  {C.BG_DARK}{C.CYAN}{'  Team Yellow  ·  Week 4 Assignment':^{W}}{C.RESET}")
+    print(f"  {C.BG_DARK}{C.WHITE}{C.BOLD}{'':^{W}}{C.RESET}")
+    print()
+
+    items = [
+        ("Server",       f"http://localhost:{PORT}"),
+        ("Transactions", f"{txn_count:,} loaded into memory"),
+        ("Auth",         "Basic Authentication (admin / momo2024)"),
+        ("Status",       f"{C.GREEN}RUNNING{C.RESET}"),
+    ]
+    for label, value in items:
+        print(f"  {C.CYAN}{label:<16}{C.RESET} {value}")
+
+    print()
+    print(f"  {C.DIM}{'─' * W}{C.RESET}")
+    print(f"  {C.BOLD}Quick test commands (copy & paste):{C.RESET}")
+    print()
+
+    cmds = [
+        ("List transactions",  "curl -u admin:momo2024 http://localhost:8000/transactions"),
+        ("Get one by ID",      "curl -u admin:momo2024 http://localhost:8000/transactions/1"),
+        ("Server health",      "curl -u admin:momo2024 http://localhost:8000/health"),
+        ("Unauthorized test",  "curl -u wrong:pass http://localhost:8000/transactions"),
+    ]
+    for label, cmd in cmds:
+        print(f"  {C.DIM}{label}:{C.RESET}")
+        print(f"  {C.YELLOW}  {cmd}{C.RESET}")
+        print()
+
+    print(f"  {C.DIM}{'─' * W}{C.RESET}")
+    print(f"  {C.DIM}Press Ctrl+C to stop the server{C.RESET}")
+    print()
+    print(f"  {C.BOLD}Request Log:{C.RESET}")
+    print(f"  {C.DIM}  Time      Method   Path                                     Status{C.RESET}")
+    print(f"  {C.DIM}  {'─' * 58}{C.RESET}")
+
+
+def _print_shutdown() -> None:
+    """I print a clean goodbye message when the server is stopped."""
+    print()
+    print(f"\n  {C.YELLOW}{C.BOLD}Server stopped.{C.RESET}")
+    print(f"  {C.DIM}Uptime: {stats.uptime()}  |  Total requests: {stats.total}  |  Auth failures: {stats.auth_fail}{C.RESET}")
+    print()
+
+
+# Entry point
+
+def run():
+    """I set up the data store and start the HTTP server."""
+
+    print(f"\n  {C.CYAN}Loading transaction data...{C.RESET}")
+    transactions = load_or_parse(XML_PATH, CACHE_PATH)
+    store.load(transactions, CACHE_PATH)
+
+    server = HTTPServer((HOST, PORT), MoMoHandler)
+
+    _print_banner(store.count)
+
+    # I handle Ctrl+C gracefully so the server shuts down cleanly
+    def _handle_sigint(sig, frame):
+        _print_shutdown()
+        server.server_close()
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, _handle_sigint)
+
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        _print_shutdown()
+
+
+if __name__ == "__main__":
+    run()
